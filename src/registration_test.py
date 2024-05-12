@@ -16,8 +16,8 @@ def model_transform(model_mesh, transformation):
 if __name__ == '__main__':
     
     # Specify the full path for your STL and PLY files
-    model_file_path = '/catkin_ws/src/grasp_icp/pcd/F1.stl'
-    scene_file_path = '/catkin_ws/src/grasp_icp/pcd/test.ply'
+    model_file_path = '/catkin_ws/src/halcon_package/pcd/bowl.stl'
+    scene_file_path = '/catkin_ws/src/halcon_package/pcd/scence.ply'
     
     # Read object model
     Object_3d, status = ha.read_object_model_3d(model_file_path, "mm",[],[])
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     print(f"After Y Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedY, 'num_points')}")
     ObjectModel3DThresholdedX = ha.select_points_object_model_3d(ObjectModel3DThresholdedY, 'point_coord_x', -10, 10)
     print(f"After X Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedX, 'num_points')}")
-    ObjectModel3DThresholdedZ = ha.select_points_object_model_3d(ObjectModel3DThresholdedX, 'point_coord_z', -1, 0.685)
+    ObjectModel3DThresholdedZ = ha.select_points_object_model_3d(ObjectModel3DThresholdedX, 'point_coord_z', 0.7, 1.098)
     print(f"After Z Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedZ, 'num_points')}")
     ObjectModel3DConnected = ha.connection_object_model_3d(ObjectModel3DThresholdedZ, 'distance_3d', 0.0035)
     ObjectModel3DSelected = ha.select_object_model_3d(ObjectModel3DConnected, 'num_points', 'and', 2000, 100000)
@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
     # Format the matrix and write to file
     matrix_str = format_matrix_eigenstyle(final_matrix)
-    with open('/catkin_ws/src/grasp_icp/out/matrix.txt', 'w') as outfile:
+    with open('/catkin_ws/src/halcon_package/pcd/matrix.txt', 'w') as outfile:
         outfile.write(matrix_str)
      
     stl_meshes = []  

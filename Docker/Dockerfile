@@ -1,6 +1,8 @@
 FROM osrf/ros:noetic-desktop-full
 ENV DEBIAN_FRONTEND=noninteractive
 
+RUN sed -i 's#http://archive.ubuntu.com/#http://mirrors.tuna.tsinghua.edu.cn/#' /etc/apt/sources.list
+
 # System layer
 RUN apt-get update && \
     apt-get upgrade -y && \
