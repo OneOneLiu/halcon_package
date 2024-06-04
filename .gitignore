@@ -1,3 +1,4 @@
 /downloads
 /.vscode
 src/__pycache__/halcon_registration.cpython-38.pyc
+pcd/scence_gazebo.ply
