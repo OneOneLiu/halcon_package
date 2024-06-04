@@ -66,9 +66,9 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
     ObjectModel3DConnected = ha.connection_object_model_3d(ObjectModel3DThresholdedZ, 'distance_3d', 0.0035)
     #print(f"ObjectModel3DConnected: {ha.get_object_model_3d_params(ObjectModel3DConnected, 'num_points')}")
     ObjectModel3DSelected = ha.select_object_model_3d(ObjectModel3DConnected, 'num_points', 'and', 200, 30000)
-    #print(f"ObjectModel3DSelected: {ha.get_object_model_3d_params(ObjectModel3DSelected, 'num_points')}")
+    print(f"ObjectModel3DSelected: {ha.get_object_model_3d_params(ObjectModel3DSelected, 'num_points')}")
     UnionObjectModel3D = ha.union_object_model_3d(ObjectModel3DSelected, 'points_surface')
-    print(f"UnionObjectModel3D: {ha.get_object_model_3d_params(UnionObjectModel3D, 'num_points')}")
+    # print(f"UnionObjectModel3D: {ha.get_object_model_3d_params(UnionObjectModel3D, 'num_points')}")
     TargetPC, Information = ha.triangulate_object_model_3d(UnionObjectModel3D, 'greedy', [], [])
     print(f"TargetPC: {ha.get_object_model_3d_params(TargetPC, 'num_points')}")
     
@@ -97,33 +97,33 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
             
     # Print results   
     transformations = [match_pose[i:i+6] for i in range(0, len(match_pose), 7)]
-    print(transformations)   
+    # print(transformations)   
     #highest_score = [0.31, 0.6,0.55, 0.44,0.48, 0.57, 0.34, 0.45,  0.69, 0.63, 0.23]
     highest_score = [0.31, 0.2,0.2]
     normalized_score = []
     for real_score, max_score in zip(match_score, highest_score):
         norm_score = real_score/max_score
         normalized_score.append(norm_score)
-    print('The normalized scores are ', normalized_score)
+    # print('The normalized scores are ', normalized_score)
     max_index1 = np.argmax(normalized_score)
     model_file_path_vis = model_file_path[max_index1]
     print('The matched item is: ', model_names[max_index1])
     matched_model = model_names[max_index1]
     filtered_list = [element for element in normalized_score if element != 0]
-    print('The list removed all 0 is: ', filtered_list)
+    # print('The list removed all 0 is: ', filtered_list)
     scaled_trans = [[element * 1000 if index < 3 else element for index, element in enumerate(sublist)] for sublist in transformations[0]]
-    print('The scaled pose is ', scaled_trans)
+    # print('The scaled pose is ', scaled_trans)
     max_index2 = np.argmax(filtered_list)
     print('The matched pose is ', scaled_trans[max_index2])
     rot_deg = scaled_trans[max_index2][3:6]
-    print("the rotation angles in degree are", rot_deg)
+    # print("the rotation angles in degree are", rot_deg)
 
     # Convert degree into radians
     rot_rad = []
     for i in rot_deg:
         d = degrees_to_radians(i)
         rot_rad.append(d)
-    print("the rotation angles in radians are", rot_rad)
+    # print("the rotation angles in radians are", rot_rad)
 
     mat_rot = tfs.euler.euler2mat(rot_rad[2],rot_rad[1],rot_rad[0],'szyx')
     # Create a column vector from the last three elements of the first sublist of transformations_scaled
@@ -135,7 +135,7 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
     mat = np.hstack((mat_rot, translation_vector))
     # Add a row [0, 0, 0, 1] to the end
     final_matrix = np.vstack((mat, np.array([0, 0, 0, 1])))
-    print("The final pose matrix is", final_matrix)
+    # print("The final pose matrix is", final_matrix)
      
     stl_meshes = []  
     # Load STL
@@ -154,7 +154,7 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
     # Load STL1
     gripper_path = PCD_PATH + "gripper.stl"
     gripper_mesh = pv.read(gripper_path)
-    print("The gripper pose is:", pose_g)
+    # print("The gripper pose is:", pose_g)
     rx1 = radians_to_degrees(pose_g[3])
     ry1 = radians_to_degrees(pose_g[4])
     rz1 = radians_to_degrees(pose_g[5])

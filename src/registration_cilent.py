@@ -16,7 +16,8 @@ def registration_client():
 if __name__ == "__main__":
     rospy.init_node("registration_client")
     response = registration_client()
+    rospy.loginfo("Registration is OK !")
     print("final_pose is :",response.final_pose)
     print("matched_model is :",response.matched_model)
-    rospy.loginfo("Registration is OK")
+    
 

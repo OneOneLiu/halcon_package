@@ -1,7 +1,9 @@
 # halcon_package
 
 ## 1. Download software source file
+
 Download software source file and save it to the `downloads/` folder in this package (untracked). The folder should be like this after that:
+
 ```bash{.line-numbers}
 downloads/
 └── halcon-23.05.0.0-x64-linux
@@ -57,32 +59,38 @@ The directory structure of this package is as follows:
 ├── install.bash
 ├── package.xml
 ├── pcd
-│   ├── bowl.stl
-│   ├── matrix.txt
-│   └── scence.ply
+│   ├── xxx.stl
+│   └── scence_gazebo.pcd
 └── src
-    └── registration_test.py
+    ├── halcon_registration.py
+    ├── registration_server.py
+    └── registration_cilent.py
 ```
 
-> 其中 `matrix.txt` 为手眼变换矩阵，
+> `xxx.stl`为配准的模型文件，
 >
-> `bowl.stl`为配准的模型文件，
+> `scence_gazebo.pcd`为获取的点云场景文件，
 >
-> `scence.ply`为获取的点云场景文件，
->
-> `license_eval_halcon_progress_2024_05.dat`为halcon授权文件，需每月更新。
+> `license_eval_halcon_progress_YYYY_MM.dat`为halcon授权文件，需每月更新。
 
 ## 3. Test registration
 
-Start ROS on the current terminal:
-
++ 启动测试环境
 ```bash
-roscore
+cd halcon_package/Docker
+bash noetic.bash 
 ```
-
-Create a new terminal and test the registration program:
-
++ 编译功能包
 ```bash
-rosrun halcon_package registration_test
+cd catkin_ws/
+catkin_make
+source devel/setup.bash 
+cd catkin_ws/src/halcon_package
+bash install.bash
 ```
-
++ 启动配准服务器
+打开launch文件为客户端节点解除注释
+打开halcon_registration.py修改PCD路径,当前为'/catkin_ws/src/grasp_icp/pcd/'
+```bash
+roslaunch pose_transformation pose_transform.launch
+```

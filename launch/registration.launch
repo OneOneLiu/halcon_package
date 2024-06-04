@@ -1,7 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-
-  <node name="registration_server" pkg="halcon_package" type="registration_server.py" output="screen">    
-  </node>
-
+  <node name="registration_server" pkg="halcon_package" type="registration_server.py" output="screen"> </node>
+  < !--node name="registration_cilent" pkg="halcon_package" type="registration_cilent.py" output="screen"> </node -->
 </launch>
