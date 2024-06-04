@@ -5,7 +5,9 @@ import numpy as np
 import transforms3d as tfs
 import math
 import pcl
- 
+
+PCD_PATH = '/catkin_ws/src/grasp_icp/pcd/'
+
 #kinect虚拟相机拍摄的点云单位为m，文件类型为.pcd, halcon需要.ply文件且单位为mm，因此需要增加该转换操作
 def convert_pcd_to_ply(ply_file, pcd_file):
     # 读取PCD文件,转换单位m to mm
@@ -35,23 +37,19 @@ def degrees_to_radians(degrees):
         
 def Registrate(pose_g = [0,0,0,0,0,0]):
     # Define the model name
-    #model_names = ['A1', 'A2', 'A3','A6','B4','D2', 'D4','E0u',  'E1u', 'E3u' , 'F1','u_joint']
-    #model_names = ['bowl','E0u',  'E1u', 'E3u' , 'F1','u_joint','gear','piston_rod']
-    model_names = ['bowl','pipe']
-    #score_threshold = [0.15, 0.26, 0.35, 0.27, 0.39, 0.4, 0.25, 0.25, 0.45, 0.45, 0.10,0.1]
-    score_threshold = [0.3,0.1]
-    # Specify the full path for your STL and PLY files
+    model_names = ['t_pipe_u','pipe_u','L_pipe_u']
+    score_threshold = [0.3,0.2,0.3]
     model_file_path = []
     for name in model_names:
-        path = '/catkin_ws/src/halcon_package/pcd/'+name+'.stl'
+        path = PCD_PATH + name +'.stl'
         model_file_path.append(path)
     print(model_file_path)
 
     # convert_pcd_to_ply
-    ply_file_path = '/catkin_ws/src/halcon_package/pcd/scence_gazebo.ply'  #填入ply文件的路径
-    pcd_file_path = '/catkin_ws/src/halcon_package/pcd/scence_gazebo.pcd'  #填入pcd文件的路径
+    ply_file_path = PCD_PATH + 'scence_gazebo.ply'  #填入ply文件的路径
+    pcd_file_path = PCD_PATH + 'scence_gazebo.pcd'  #填入pcd文件的路径
     convert_pcd_to_ply(ply_file_path, pcd_file_path)
-    scene_file_path = '/catkin_ws/src/halcon_package/pcd/scence_gazebo.ply'
+    scene_file_path = ply_file_path 
 
     # Read scene model
     Scene_3d, status = ha.read_object_model_3d(scene_file_path, "mm",[],[])
@@ -59,20 +57,20 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
 
     # Preprocess the scene 
     ObjectModel3DThresholdedY = ha.select_points_object_model_3d(Scene_3d, 'point_coord_y', -0.6, 0.6)
-    print(f"After Y Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedY, 'num_points')}")
+    # print(f"After Y Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedY, 'num_points')}")
     ObjectModel3DThresholdedX = ha.select_points_object_model_3d(ObjectModel3DThresholdedY, 'point_coord_x', -0.6, 0.6)
-    print(f"After X Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedX, 'num_points')}")
+    # print(f"After X Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedX, 'num_points')}")
     ObjectModel3DThresholdedZ = ha.select_points_object_model_3d(ObjectModel3DThresholdedX, 'point_coord_z', 0.6, 1.01)
     print(f"After Z Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedZ, 'num_points')}")
 
     ObjectModel3DConnected = ha.connection_object_model_3d(ObjectModel3DThresholdedZ, 'distance_3d', 0.0035)
     #print(f"ObjectModel3DConnected: {ha.get_object_model_3d_params(ObjectModel3DConnected, 'num_points')}")
-    ObjectModel3DSelected = ha.select_object_model_3d(ObjectModel3DConnected, 'num_points', 'and', 600, 300000)
+    ObjectModel3DSelected = ha.select_object_model_3d(ObjectModel3DConnected, 'num_points', 'and', 200, 30000)
     #print(f"ObjectModel3DSelected: {ha.get_object_model_3d_params(ObjectModel3DSelected, 'num_points')}")
     UnionObjectModel3D = ha.union_object_model_3d(ObjectModel3DSelected, 'points_surface')
-    #print(f"UnionObjectModel3D: {ha.get_object_model_3d_params(UnionObjectModel3D, 'num_points')}")
+    print(f"UnionObjectModel3D: {ha.get_object_model_3d_params(UnionObjectModel3D, 'num_points')}")
     TargetPC, Information = ha.triangulate_object_model_3d(UnionObjectModel3D, 'greedy', [], [])
-    #print(f"TargetPC: {ha.get_object_model_3d_params(TargetPC, 'num_points')}")
+    print(f"TargetPC: {ha.get_object_model_3d_params(TargetPC, 'num_points')}")
     
     # Read object model
     model_mesh = []
@@ -101,7 +99,7 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
     transformations = [match_pose[i:i+6] for i in range(0, len(match_pose), 7)]
     print(transformations)   
     #highest_score = [0.31, 0.6,0.55, 0.44,0.48, 0.57, 0.34, 0.45,  0.69, 0.63, 0.23]
-    highest_score = [0.31, 0.2]
+    highest_score = [0.31, 0.2,0.2]
     normalized_score = []
     for real_score, max_score in zip(match_score, highest_score):
         norm_score = real_score/max_score
@@ -154,7 +152,7 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
 
     # load gripper coordination
     # Load STL1
-    gripper_path = "/catkin_ws/src/halcon_package/pcd/gripper.stl"
+    gripper_path = PCD_PATH + "gripper.stl"
     gripper_mesh = pv.read(gripper_path)
     print("The gripper pose is:", pose_g)
     rx1 = radians_to_degrees(pose_g[3])
