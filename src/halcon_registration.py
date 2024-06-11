@@ -6,6 +6,7 @@ import transforms3d as tfs
 import math
 import pcl
 
+DEBUG = False
 PCD_PATH = '/catkin_ws/src/grasp_icp/pcd/'
 
 #kinect虚拟相机拍摄的点云单位为m，文件类型为.pcd, halcon需要.ply文件且单位为mm，因此需要增加该转换操作
@@ -61,7 +62,7 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
     ObjectModel3DThresholdedX = ha.select_points_object_model_3d(ObjectModel3DThresholdedY, 'point_coord_x', -0.6, 0.6)
     # print(f"After X Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedX, 'num_points')}")
     ObjectModel3DThresholdedZ = ha.select_points_object_model_3d(ObjectModel3DThresholdedX, 'point_coord_z', 0.6, 1.01)
-    print(f"After Z Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedZ, 'num_points')}")
+    # print(f"After Z Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedZ, 'num_points')}")
 
     ObjectModel3DConnected = ha.connection_object_model_3d(ObjectModel3DThresholdedZ, 'distance_3d', 0.0035)
     #print(f"ObjectModel3DConnected: {ha.get_object_model_3d_params(ObjectModel3DConnected, 'num_points')}")
@@ -70,7 +71,7 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
     UnionObjectModel3D = ha.union_object_model_3d(ObjectModel3DSelected, 'points_surface')
     # print(f"UnionObjectModel3D: {ha.get_object_model_3d_params(UnionObjectModel3D, 'num_points')}")
     TargetPC, Information = ha.triangulate_object_model_3d(UnionObjectModel3D, 'greedy', [], [])
-    print(f"TargetPC: {ha.get_object_model_3d_params(TargetPC, 'num_points')}")
+    # print(f"TargetPC: {ha.get_object_model_3d_params(TargetPC, 'num_points')}")
     
     # Read object model
     model_mesh = []
@@ -136,38 +137,39 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
     # Add a row [0, 0, 0, 1] to the end
     final_matrix = np.vstack((mat, np.array([0, 0, 0, 1])))
     # print("The final pose matrix is", final_matrix)
-     
-    stl_meshes = []  
-    # Load STL
-    for i in range(1):
-        stl_meshes.append(pv.read(model_file_path_vis))
 
-    # load scene
-    ply_mesh = pv.read(scene_file_path)
-    
-    stl_meshes_trans=[model_transform(stl_meshes[i], scaled_trans[max_index2]) for i in range(1)]
+    if DEBUG == True:
+        print(f"After Y Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedY, 'num_points')}")
+        print(f"After Y Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedY, 'num_points')}")
+        print(f"After Z Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedZ, 'num_points')}")
+        print("The final pose matrix is", final_matrix)
+        stl_meshes = []  
+        # Load STL
+        for i in range(1):
+            stl_meshes.append(pv.read(model_file_path_vis))
+        # load scene
+        ply_mesh = pv.read(scene_file_path)
+        stl_meshes_trans=[model_transform(stl_meshes[i], scaled_trans[max_index2]) for i in range(1)]
+        # Create a Plotter instance
+        plotter = pv.Plotter()
+        # load gripper coordination
+        # Load STL1
+        gripper_path = PCD_PATH + "gripper.stl"
+        gripper_mesh = pv.read(gripper_path)
+        # print("The gripper pose is:", pose_g)
+        rx1 = radians_to_degrees(pose_g[3])
+        ry1 = radians_to_degrees(pose_g[4])
+        rz1 = radians_to_degrees(pose_g[5])
+        gripper_trans = model_transform(gripper_mesh, [pose_g[0],pose_g[1],pose_g[2],rx1, ry1, rz1, 0])
+        # Add  meshes to the plotter
+        plotter.add_mesh(ply_mesh, color='lightblue', show_edges=True)
+        for i in range(1):
+            plotter.add_mesh(stl_meshes_trans[i], color='red', show_edges=True)
+        plotter.add_mesh(gripper_trans, color='lightblue', show_edges=True)
+        axes = pv.Axes(show_actor=True, actor_scale=200.0, line_width=5)
+        axes.origin = (0, 0, 0)
+        plotter.add_actor(axes.actor)
+        plotter.show()
 
-    # Create a Plotter instance
-    plotter = pv.Plotter()
-
-    # load gripper coordination
-    # Load STL1
-    gripper_path = PCD_PATH + "gripper.stl"
-    gripper_mesh = pv.read(gripper_path)
-    # print("The gripper pose is:", pose_g)
-    rx1 = radians_to_degrees(pose_g[3])
-    ry1 = radians_to_degrees(pose_g[4])
-    rz1 = radians_to_degrees(pose_g[5])
-    gripper_trans = model_transform(gripper_mesh, [pose_g[0],pose_g[1],pose_g[2],rx1, ry1, rz1, 0])
-
-    # Add  meshes to the plotter
-    plotter.add_mesh(ply_mesh, color='lightblue', show_edges=True)
-    for i in range(1):
-        plotter.add_mesh(stl_meshes_trans[i], color='red', show_edges=True)
-    plotter.add_mesh(gripper_trans, color='lightblue', show_edges=True)
-    axes = pv.Axes(show_actor=True, actor_scale=200.0, line_width=5)
-    axes.origin = (0, 0, 0)
-    plotter.add_actor(axes.actor)
-    plotter.show()
     return final_matrix,matched_model
     
