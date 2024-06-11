@@ -1,3 +1,4 @@
+bool debug_mode
 ---
 float32[16] final_pose
 string matched_model

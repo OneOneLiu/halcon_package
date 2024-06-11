@@ -7,8 +7,9 @@ from std_msgs.msg import Int32
 from halcon_registration import Registrate
 
 #请求信息虽然为空，但服务仍会接受到一个参数，但对回调函数无意义，因此为回调函数添加一个不会使用到的形参
+#请求信息为是否启动调试模式，若启动调试模式将会显示配准可视化界面，并打印调试信息
 def handle_registration(req):
-    final_pose, matched_model= Registrate()
+    final_pose, matched_model= Registrate(req.debug_mode)
     final_pose = final_pose.reshape(-1).tolist()
     return RegistratePoseResponse(final_pose, matched_model)
 

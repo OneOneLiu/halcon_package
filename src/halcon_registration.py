@@ -6,7 +6,6 @@ import transforms3d as tfs
 import math
 import pcl
 
-DEBUG = False
 PCD_PATH = '/catkin_ws/src/grasp_icp/pcd/'
 
 #kinect虚拟相机拍摄的点云单位为m，文件类型为.pcd, halcon需要.ply文件且单位为mm，因此需要增加该转换操作
@@ -36,7 +35,7 @@ def degrees_to_radians(degrees):
     radians = degrees * (math.pi / 180)
     return radians
         
-def Registrate(pose_g = [0,0,0,0,0,0]):
+def Registrate(debug_mode = False):
     # Define the model name
     model_names = ['t_pipe_u','pipe_u','L_pipe_u']
     score_threshold = [0.3,0.2,0.3]
@@ -44,7 +43,7 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
     for name in model_names:
         path = PCD_PATH + name +'.stl'
         model_file_path.append(path)
-    print(model_file_path)
+    
 
     # convert_pcd_to_ply
     ply_file_path = PCD_PATH + 'scence_gazebo.ply'  #填入ply文件的路径
@@ -54,25 +53,30 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
 
     # Read scene model
     Scene_3d, status = ha.read_object_model_3d(scene_file_path, "mm",[],[])
-    print(f"Initial Scene Points: {ha.get_object_model_3d_params(Scene_3d, 'num_points')}")
-
+    
     # Preprocess the scene 
     ObjectModel3DThresholdedY = ha.select_points_object_model_3d(Scene_3d, 'point_coord_y', -0.6, 0.6)
-    # print(f"After Y Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedY, 'num_points')}")
     ObjectModel3DThresholdedX = ha.select_points_object_model_3d(ObjectModel3DThresholdedY, 'point_coord_x', -0.6, 0.6)
-    # print(f"After X Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedX, 'num_points')}")
     ObjectModel3DThresholdedZ = ha.select_points_object_model_3d(ObjectModel3DThresholdedX, 'point_coord_z', 0.6, 1.01)
-    # print(f"After Z Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedZ, 'num_points')}")
-
     ObjectModel3DConnected = ha.connection_object_model_3d(ObjectModel3DThresholdedZ, 'distance_3d', 0.0035)
-    #print(f"ObjectModel3DConnected: {ha.get_object_model_3d_params(ObjectModel3DConnected, 'num_points')}")
     ObjectModel3DSelected = ha.select_object_model_3d(ObjectModel3DConnected, 'num_points', 'and', 200, 30000)
-    print(f"ObjectModel3DSelected: {ha.get_object_model_3d_params(ObjectModel3DSelected, 'num_points')}")
     UnionObjectModel3D = ha.union_object_model_3d(ObjectModel3DSelected, 'points_surface')
-    # print(f"UnionObjectModel3D: {ha.get_object_model_3d_params(UnionObjectModel3D, 'num_points')}")
     TargetPC, Information = ha.triangulate_object_model_3d(UnionObjectModel3D, 'greedy', [], [])
-    # print(f"TargetPC: {ha.get_object_model_3d_params(TargetPC, 'num_points')}")
     
+    if debug_mode == True:
+        print("************Debug information************")
+        print("Model files path:", model_file_path)
+        print("-----------------------------------")
+        print("Filter point cloud logs:")
+        print(f"Initial Scene Points: {ha.get_object_model_3d_params(Scene_3d, 'num_points')}")
+        print(f"After Y Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedY, 'num_points')}")
+        print(f"After X Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedX, 'num_points')}")
+        print(f"After Z Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedZ, 'num_points')}")
+        print(f"ObjectModel3DConnected: {ha.get_object_model_3d_params(ObjectModel3DConnected, 'num_points')}")
+        print(f"ObjectModel3DSelected: {ha.get_object_model_3d_params(ObjectModel3DSelected, 'num_points')}")
+        print(f"UnionObjectModel3D: {ha.get_object_model_3d_params(UnionObjectModel3D, 'num_points')}")
+        print(f"TargetPC: {ha.get_object_model_3d_params(TargetPC, 'num_points')}")
+        print("-----------------------------------")
     # Read object model
     model_mesh = []
     for path in model_file_path:
@@ -87,7 +91,7 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
     for mesh, thre in zip(model_mesh, score_threshold):
         # Matching without view based
         pose, score, ID = ha.find_surface_model(mesh, TargetPC, 0.05, 0.2, thre, "true", ['num_matches', 'use_view_based'], [1, 'false'])
-        print("score is:", score)
+        print("Matching score is:", score)
         # Only append score[0] if score is not empty and score[0] is a number
         if score and isinstance(score[0], (float, int)):
             match_score.append(score[0])
@@ -115,7 +119,7 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
     scaled_trans = [[element * 1000 if index < 3 else element for index, element in enumerate(sublist)] for sublist in transformations[0]]
     # print('The scaled pose is ', scaled_trans)
     max_index2 = np.argmax(filtered_list)
-    print('The matched pose is ', scaled_trans[max_index2])
+    # print('The matched pose is ', scaled_trans[max_index2])
     rot_deg = scaled_trans[max_index2][3:6]
     # print("the rotation angles in degree are", rot_deg)
 
@@ -138,10 +142,7 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
     final_matrix = np.vstack((mat, np.array([0, 0, 0, 1])))
     # print("The final pose matrix is", final_matrix)
 
-    if DEBUG == True:
-        print(f"After Y Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedY, 'num_points')}")
-        print(f"After Y Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedY, 'num_points')}")
-        print(f"After Z Thresholding: {ha.get_object_model_3d_params(ObjectModel3DThresholdedZ, 'num_points')}")
+    if debug_mode == True:
         print("The final pose matrix is", final_matrix)
         stl_meshes = []  
         # Load STL
@@ -156,6 +157,7 @@ def Registrate(pose_g = [0,0,0,0,0,0]):
         # Load STL1
         gripper_path = PCD_PATH + "gripper.stl"
         gripper_mesh = pv.read(gripper_path)
+        pose_g = [0,0,0,0,0,0]
         # print("The gripper pose is:", pose_g)
         rx1 = radians_to_degrees(pose_g[3])
         ry1 = radians_to_degrees(pose_g[4])
