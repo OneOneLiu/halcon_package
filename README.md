@@ -73,24 +73,33 @@ The directory structure of this package is as follows:
 >
 > `license_eval_halcon_progress_YYYY_MM.dat`为halcon授权文件，需每月更新。
 
-## 3. Test registration
+## 3. Test registration（Only test the functionality of this package）
 
 + 启动测试环境
-```bash
-cd halcon_package/Docker
-bash noetic.bash 
-```
+
+  ```bash
+  cd halcon_package/Docker
+  bash noetic.bash 
+  ```
 + 编译功能包
-```bash
-cd catkin_ws/
-catkin_make
-source devel/setup.bash 
-cd catkin_ws/src/halcon_package
-bash install.bash
-```
-+ 启动配准服务器
-打开launch文件为客户端节点解除注释
-打开halcon_registration.py修改PCD路径,当前为'/catkin_ws/src/grasp_icp/pcd/'
-```bash
-roslaunch pose_transformation pose_transform.launch
-```
+
+  ```bash
+  cd catkin_ws/
+  catkin_make
+  source devel/setup.bash 
+  cd catkin_ws/src/halcon_package
+  bash install.bash
+  ```
++ 启动配准服务端
+
+  ```bash
+  roslaunch halcon_package registration.launch
+  ```
++ 启动配准客户端进行配准
+
+  + 打开halcon_registration.py修改PCD路径,当前为 `/catkin_ws/src/grasp_icp/pcd/`，修改为 `/catkin_ws/src/halcon_package/pcd/`
+  + **调试模式**：通过修改 `registration_client.py`中 `debug_mode = False/True`决定是否打印调试信息和展示配准可视化结果
+
+  ```bash
+  rosrun halcon_package registration_client.py
+  ```
