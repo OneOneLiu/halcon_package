@@ -1,1 +1,0 @@
-此文件夹存放halcon的license文件，需每月更新，否则将无法使用halcon的功能。
