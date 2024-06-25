@@ -31,6 +31,13 @@ def preprocess_point_cloud(pcd, voxel_size):
         o3d.geometry.KDTreeSearchParamHybrid(radius=radius_feature, max_nn=100))
     return pcd_down, pcd_fpfh
 
+# 计算置信度函数
+def compute_confidence(result):
+    fitness = result.fitness
+    inlier_rmse = result.inlier_rmse
+    # 定义一个简单的置信度函数，可以根据需要进行调整
+    confidence = fitness / (1 + inlier_rmse)
+    return confidence
 
 if __name__ == '__main__':
     
@@ -94,13 +101,13 @@ if __name__ == '__main__':
         clusters.append(cluster)
     
     # # 显示剔除少于阈值后的聚类结果
-    # o3d.visualization.draw_geometries(clusters + [object_point_cloud, axes], window_name="剔除少于阈值后的聚类结果", width=800, height=600)
+    o3d.visualization.draw_geometries(clusters + [axes], window_name="剔除少于阈值后的聚类结果", width=800, height=600)
     
     ##############################
     ### 点云配准：RANSAC + ICP ###
     ##############################
 
-    voxel_size = 9
+    voxel_size = 9 # 可调参数，用于下采样
     transformed_objects = []
     object_down, object_fpfh = preprocess_point_cloud(object_point_cloud, voxel_size)
     
@@ -111,16 +118,16 @@ if __name__ == '__main__':
         cluster_down, cluster_fpfh = preprocess_point_cloud(cluster_pcd, voxel_size)
         
         # RANSAC初始配准
-        distance_threshold = voxel_size * 0.4
+        distance_threshold = voxel_size * 0.4 # 可调参数，用于RANSAC
         result_ransac = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
             object_down, cluster_down, object_fpfh, cluster_fpfh,
             mutual_filter=False,
             max_correspondence_distance=distance_threshold,
             estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint(False),
             ransac_n=4,
-            checkers=[o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(0.4),
+            checkers=[o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(0.9), # 可调参数
                       o3d.pipelines.registration.CorrespondenceCheckerBasedOnDistance(distance_threshold)],
-            criteria=o3d.pipelines.registration.RANSACConvergenceCriteria(4000000, 500))
+            criteria=o3d.pipelines.registration.RANSACConvergenceCriteria(4000000, 500)) # 可调参数
         
         print("RANSAC alignment")
         print(result_ransac)
@@ -132,10 +139,12 @@ if __name__ == '__main__':
             max_correspondence_distance=distance_threshold,
             init=result_ransac.transformation,
             estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint(),
-            criteria=o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=2000)
+            criteria=o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=2000) # 可调参数
         )
         print(f"ICP transformation: \n{icp.transformation}")
         
+        confidence = compute_confidence(icp)
+        print(f"Confidence for cluster {i+1}: {confidence}")
         # 应用变换到object_point_cloud
         transformed_object = copy.deepcopy(object_point_cloud) # 深拷贝防止原始点云被修改
         transformed_object.transform(icp.transformation)
