@@ -40,6 +40,8 @@ def compute_confidence(result):
     return confidence
 
 if __name__ == '__main__':
+    # 创建坐标系物体，用于可视化
+    axes = o3d.geometry.TriangleMesh.create_coordinate_frame(size=200, origin=[0, 0, 0])
     
     ###############################
     ### 读取并处理目标模型和场景模型 ###
@@ -57,6 +59,9 @@ if __name__ == '__main__':
     # 读取场景模型
     scene_point_cloud = o3d.io.read_point_cloud(scene_file_path)
     
+    # 可视化原始点云
+    o3d.visualization.draw_geometries([scene_point_cloud, axes], window_name="原始点云", width=800, height=600)
+
     ##############################
     ### 预处理：裁剪场景点云并聚类 ###
     ###############################
@@ -67,8 +72,8 @@ if __name__ == '__main__':
     # 使用包围盒裁剪点云
     cropped_pcd = scene_point_cloud.crop(bbox)
     
-    # 创建坐标系物体，用于可视化
-    axes = o3d.geometry.TriangleMesh.create_coordinate_frame(size=200, origin=[0, 0, 0])
+    # 可视化裁减后的点云
+    o3d.visualization.draw_geometries([cropped_pcd, axes], window_name="裁减后的点云", width=800, height=600)
     
     # 预处理：聚类点云
     with o3d.utility.VerbosityContextManager(o3d.utility.VerbosityLevel.Debug) as cm:
